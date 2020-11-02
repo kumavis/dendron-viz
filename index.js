@@ -6,11 +6,11 @@ require('codemirror/mode/javascript/javascript.js')
 
 const exampleCode = stringFromFn(() => {
   var x = 123
-  var y = x + 1
-  var z = w(y + 2)
+  var y = x
+  var z = w(y)
 
   function w (abc) {
-    return x + abc
+    return abc
   }
 })
 
@@ -58,43 +58,72 @@ function generateGraphData ({ codeString }) {
         source: idForNode(path.parent),
         target: idForNode(path.node),
         name: `ast`,
-        color: 'blue',
       })
     },
     ReferencedIdentifier: (path) => {
       const refTarget = path.scope.getBinding(path.node.name)
       nodeSet.add(path.node)
       if (!refTarget) return
-      nodeSet.add(refTarget.identifier)
+      nodeSet.add(refTarget.path.node)
       refLinks.push({
         source: idForNode(path.node),
-        target: idForNode(refTarget.identifier),
-        name: `ref: "${idForNode(path.node)}"`,
+        target: idForNode(refTarget.path.node),
+        name: `ref: "${idForNode(path.node.name)}"`,
         color: 'red',
       })
     },
-    // CallExpression: (path) => {
-    //   const fnCallee = path.node.callee
-    //   // doing some shortening here (identifier -> refTarget)
-    //   const calleeRefTargetNode = fnCallee.type === 'Identifier' ? path.scope.getBinding(fnCallee.name).identifier : fnCallee
-    //   nodeSet.add(path.node)
-    //   refLinks.push({
-    //     source: idForNode(path.node),
-    //     target: idForNode(calleeRefTargetNode),
-    //     name: `call callee: "${idForNode(path.node)}"`,
-    //     color: 'green',
-    //   })
-    //   nodeSet.add(calleeRefTargetNode)
-    //   path.node.arguments.forEach(argNode => {
-    //     refLinks.push({
-    //       source: idForNode(path.node),
-    //       target: idForNode(argNode),
-    //       name: `call args: "${idForNode(argNode)}"`,
-    //       color: 'yellow',
-    //     })
-    //     nodeSet.add(argNode)
-    //   })
-    // },
+    CallExpression: (path) => {
+      const fnCallee = path.node.callee
+      let calleeRefTargetNode
+      // doing some shortening here (identifier -> fn definition)
+      if (fnCallee.type === 'Identifier') {
+        calleeRefTargetNode = path.scope.getBinding(fnCallee.name).path.node
+      } else {
+        calleeRefTargetNode = fnCallee
+      }
+      nodeSet.add(calleeRefTargetNode)
+      refLinks.push({
+        source: idForNode(path.node),
+        target: idForNode(calleeRefTargetNode),
+        name: `call callee: "${idForNode(path.node)}"`,
+        color: 'purple',
+      })
+      path.node.arguments.forEach((argValue, index) => {
+        const argDeclaration = calleeRefTargetNode.params[index]
+        nodeSet.add(argValue)
+        nodeSet.add(argDeclaration)
+        refLinks.push({
+          source: idForNode(argDeclaration),
+          target: idForNode(argValue),
+          name: `call args: "${argDeclaration.name}"`,
+          color: 'orange',
+        })
+      })
+      // TODO: check for member expression in callee and add as `this` ref
+    },
+    VariableDeclarator: (path) => {
+      nodeSet.add(path.node)
+      if (!path.node.init) return
+      nodeSet.add(path.node.init)
+      refLinks.push({
+        source: idForNode(path.node),
+        target: idForNode(path.node.init),
+        name: `value assignment`,
+        color: 'green',
+      })
+    },
+    ReturnStatement: (path) => {
+      const funcDeclaration = path.scope.block
+      const argValue = path.node.argument
+      nodeSet.add(funcDeclaration)
+      nodeSet.add(argValue)
+      refLinks.push({
+        source: idForNode(funcDeclaration),
+        target: idForNode(argValue),
+        name: `return argument`,
+        color: 'pink',
+      })
+    }
   })
 
   console.log(refLinks)
@@ -114,7 +143,7 @@ function initGraph({ container, graphData, onNodeHover }) {
   const myGraph = ForceGraph()
   myGraph(container)
     .graphData(graphData)
-    .linkDirectionalArrowLength(6)
+    .linkDirectionalArrowLength(link => link.name === 'ast' ? 0 : 6)
     .onNodeHover(onNodeHover)
   return myGraph
 }
