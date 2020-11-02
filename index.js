@@ -50,16 +50,16 @@ function generateGraphData ({ codeString }) {
 
   // record path + contexts
   traverse(ast, {
-    enter (path) {
-      nodeSet.add(path.node)
-      if (!path.parent) return
-      nodeSet.add(path.parent)
-      refLinks.push({
-        source: idForNode(path.parent),
-        target: idForNode(path.node),
-        name: `ast`,
-      })
-    },
+    // enter (path) {
+    //   nodeSet.add(path.node)
+    //   if (!path.parent) return
+    //   nodeSet.add(path.parent)
+    //   refLinks.push({
+    //     source: idForNode(path.parent),
+    //     target: idForNode(path.node),
+    //     name: `ast`,
+    //   })
+    // },
     ReferencedIdentifier: (path) => {
       const refTarget = path.scope.getBinding(path.node.name)
       nodeSet.add(path.node)
@@ -81,6 +81,7 @@ function generateGraphData ({ codeString }) {
       } else {
         calleeRefTargetNode = fnCallee
       }
+      nodeSet.add(path.node)
       nodeSet.add(calleeRefTargetNode)
       refLinks.push({
         source: idForNode(path.node),
