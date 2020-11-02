@@ -20,7 +20,7 @@ const codeMirror = CodeMirror(document.body, {
 })
 const codeMirrorDoc = codeMirror.getDoc()
 
-const pathLookup = new WeakMap()
+// const pathLookup = new WeakMap()
 
 const myGraph = initGraph({
   container: document.getElementById('graph'),
@@ -51,42 +51,50 @@ function generateGraphData ({ codeString }) {
   // record path + contexts
   traverse(ast, {
     enter (path) {
-      pathLookup.set(path.node, path)
+      nodeSet.add(path.node)
+      if (!path.parent) return
+      nodeSet.add(path.parent)
+      refLinks.push({
+        source: idForNode(path.parent),
+        target: idForNode(path.node),
+        name: `ast`,
+        color: 'blue',
+      })
     },
     ReferencedIdentifier: (path) => {
       const refTarget = path.scope.getBinding(path.node.name)
       nodeSet.add(path.node)
       if (!refTarget) return
+      nodeSet.add(refTarget.identifier)
       refLinks.push({
         source: idForNode(path.node),
         target: idForNode(refTarget.identifier),
         name: `ref: "${idForNode(path.node)}"`,
-        color: 'blue',
-      })
-      nodeSet.add(refTarget.identifier)
-    },
-    CallExpression: (path) => {
-      const fnCallee = path.node.callee
-      // doing some shortening here (identifier -> refTarget)
-      const calleeRefTargetNode = fnCallee.type === 'Identifier' ? path.scope.getBinding(fnCallee.name).identifier : fnCallee
-      nodeSet.add(path.node)
-      refLinks.push({
-        source: idForNode(path.node),
-        target: idForNode(calleeRefTargetNode),
-        name: `call callee: "${idForNode(path.node)}"`,
-        color: 'green',
-      })
-      nodeSet.add(calleeRefTargetNode)
-      path.node.arguments.forEach(argNode => {
-        refLinks.push({
-          source: idForNode(path.node),
-          target: idForNode(argNode),
-          name: `call args: "${idForNode(argNode)}"`,
-          color: 'yellow',
-        })
-        nodeSet.add(argNode)
+        color: 'red',
       })
     },
+    // CallExpression: (path) => {
+    //   const fnCallee = path.node.callee
+    //   // doing some shortening here (identifier -> refTarget)
+    //   const calleeRefTargetNode = fnCallee.type === 'Identifier' ? path.scope.getBinding(fnCallee.name).identifier : fnCallee
+    //   nodeSet.add(path.node)
+    //   refLinks.push({
+    //     source: idForNode(path.node),
+    //     target: idForNode(calleeRefTargetNode),
+    //     name: `call callee: "${idForNode(path.node)}"`,
+    //     color: 'green',
+    //   })
+    //   nodeSet.add(calleeRefTargetNode)
+    //   path.node.arguments.forEach(argNode => {
+    //     refLinks.push({
+    //       source: idForNode(path.node),
+    //       target: idForNode(argNode),
+    //       name: `call args: "${idForNode(argNode)}"`,
+    //       color: 'yellow',
+    //     })
+    //     nodeSet.add(argNode)
+    //   })
+    // },
   })
 
   console.log(refLinks)
