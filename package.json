@@ -6,8 +6,7 @@
   "license": "MIT",
   "scripts": {
     "start": "beefy index.js:bundle.js --live --open",
-    "build": "browserify index.js > bundle.js",
-    "deploy": "yarn build && ghpages"
+    "build": "browserify index.js > bundle.js"
   },
   "dependencies": {
     "@babel/parser": "^7.12.3",
@@ -17,7 +16,6 @@
   },
   "devDependencies": {
     "beefy": "^2.1.8",
-    "browserify": "^17.0.0",
-    "ghpages": "^0.0.10"
+    "browserify": "^17.0.0"
   }
 }
