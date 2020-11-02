@@ -16,31 +16,45 @@ const exampleCode = stringFromFn(() => {
 
 const codeMirror = CodeMirror(document.body, {
   value: exampleCode,
-  mode: 'javascript'
+  mode: 'javascript',
+  readOnly: true,
 })
 const codeMirrorDoc = codeMirror.getDoc()
 
-// const pathLookup = new WeakMap()
-
+const graphData = generateGraphData({ codeString: exampleCode })
 const myGraph = initGraph({
   container: document.getElementById('graph'),
-  graphData: generateGraphData({ codeString: exampleCode }),
-  onNodeHover: (node) => {
-    if (!node) return
-    const [start, end] = idToRange(node.id)    
-    codeMirrorDoc.setSelection(
-      codeMirrorDoc.posFromIndex(start),
-      codeMirrorDoc.posFromIndex(end),
-    )
-  }
 })
 
-codeMirror.on('change', () => {
-  const codeString = codeMirrorDoc.getValue()
-  myGraph.graphData(
-    generateGraphData({ codeString })
-  )
-})
+myGraph
+  .graphData(graphData)
+  .onNodeHover((node) => {
+    if (!node) return
+    codeMirrorDoc.setSelections([
+      rangeToAnchor(idToRange(node.id))
+    ])
+  })
+  .onLinkHover((link) => {
+    if (!link) return
+    codeMirrorDoc.setSelections([
+      rangeToAnchor(idToRange(link.source.id)),
+      rangeToAnchor(idToRange(link.target.id)),
+    ])
+  })
+
+function rangeToAnchor([start, end]) {
+  return {
+    anchor: codeMirrorDoc.posFromIndex(start),
+    head: codeMirrorDoc.posFromIndex(end),
+  }
+}
+
+// codeMirror.on('change', () => {
+//   const codeString = codeMirrorDoc.getValue()
+//   myGraph.graphData(
+//     generateGraphData({ codeString })
+//   )
+// })
 
 function generateGraphData ({ codeString }) {
   const refLinks = []
@@ -68,7 +82,7 @@ function generateGraphData ({ codeString }) {
       refLinks.push({
         source: idForNode(path.node),
         target: idForNode(refTarget.path.node),
-        name: `ref: "${idForNode(path.node.name)}"`,
+        name: `ref: "${path.node.name}"`,
         color: 'red',
       })
     },
@@ -121,7 +135,7 @@ function generateGraphData ({ codeString }) {
       refLinks.push({
         source: idForNode(funcDeclaration),
         target: idForNode(argValue),
-        name: `return argument`,
+        name: `return arg`,
         color: 'pink',
       })
     }
@@ -140,12 +154,10 @@ function generateGraphData ({ codeString }) {
   }
 }
 
-function initGraph({ container, graphData, onNodeHover }) {
+function initGraph({ container }) {
   const myGraph = ForceGraph()
   myGraph(container)
-    .graphData(graphData)
     .linkDirectionalArrowLength(link => link.name === 'ast' ? 0 : 6)
-    .onNodeHover(onNodeHover)
   return myGraph
 }
 
