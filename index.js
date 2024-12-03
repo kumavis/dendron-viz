@@ -155,6 +155,19 @@ function initGraph({ container }) {
   const myGraph = ForceGraph()
   myGraph(container)
     .linkDirectionalArrowLength(link => link.name === 'ast' ? 0 : 6)
+
+    // Function to resize the graph to fit the window
+  function resizeGraph() {
+    myGraph.width(window.innerWidth);
+    myGraph.height(window.innerHeight);
+  }
+
+  // Call the function initially to set the size
+  resizeGraph();
+
+  // Add a listener for window resize events
+  window.addEventListener('resize', resizeGraph);
+
   return myGraph
 }
 
