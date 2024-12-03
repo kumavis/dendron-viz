@@ -17,7 +17,6 @@ const exampleCode = stringFromFn(() => {
 const codeMirror = CodeMirror(document.body, {
   value: exampleCode,
   mode: 'javascript',
-  readOnly: true,
 })
 const codeMirrorDoc = codeMirror.getDoc()
 
@@ -49,12 +48,12 @@ function rangeToAnchor([start, end]) {
   }
 }
 
-// codeMirror.on('change', () => {
-//   const codeString = codeMirrorDoc.getValue()
-//   myGraph.graphData(
-//     generateGraphData({ codeString })
-//   )
-// })
+codeMirror.on('change', () => {
+  const codeString = codeMirrorDoc.getValue()
+  myGraph.graphData(
+    generateGraphData({ codeString })
+  )
+})
 
 function generateGraphData ({ codeString }) {
   const refLinks = []
