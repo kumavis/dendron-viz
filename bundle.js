@@ -18,7 +18,6 @@ const exampleCode = stringFromFn(() => {
 const codeMirror = CodeMirror(document.body, {
   value: exampleCode,
   mode: 'javascript',
-  readOnly: true,
 })
 const codeMirrorDoc = codeMirror.getDoc()
 
@@ -50,12 +49,12 @@ function rangeToAnchor([start, end]) {
   }
 }
 
-// codeMirror.on('change', () => {
-//   const codeString = codeMirrorDoc.getValue()
-//   myGraph.graphData(
-//     generateGraphData({ codeString })
-//   )
-// })
+codeMirror.on('change', () => {
+  const codeString = codeMirrorDoc.getValue()
+  myGraph.graphData(
+    generateGraphData({ codeString })
+  )
+})
 
 function generateGraphData ({ codeString }) {
   const refLinks = []
@@ -142,8 +141,6 @@ function generateGraphData ({ codeString }) {
     }
   })
 
-  console.log(refLinks)
-
   return {
     nodes: Array.from(nodeSet).map(nodeData => {
       return {
@@ -159,6 +156,19 @@ function initGraph({ container }) {
   const myGraph = ForceGraph()
   myGraph(container)
     .linkDirectionalArrowLength(link => link.name === 'ast' ? 0 : 6)
+
+    // Function to resize the graph to fit the window
+  function resizeGraph() {
+    myGraph.width(window.innerWidth);
+    myGraph.height(window.innerHeight);
+  }
+
+  // Call the function initially to set the size
+  resizeGraph();
+
+  // Add a listener for window resize events
+  window.addEventListener('resize', resizeGraph);
+
   return myGraph
 }
 
