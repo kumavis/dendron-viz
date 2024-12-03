@@ -17,6 +17,7 @@ const exampleCode = stringFromFn(() => {
 const codeMirror = CodeMirror(document.body, {
   value: exampleCode,
   mode: 'javascript',
+  // readOnly: true,
 })
 const codeMirrorDoc = codeMirror.getDoc()
 
@@ -139,8 +140,6 @@ function generateGraphData ({ codeString }) {
       })
     }
   })
-
-  console.log(refLinks)
 
   return {
     nodes: Array.from(nodeSet).map(nodeData => {
