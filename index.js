@@ -4,15 +4,28 @@ const { default: traverse } = require('@babel/traverse')
 const CodeMirror = require('codemirror')
 require('codemirror/mode/javascript/javascript.js')
 
-const exampleCode = stringFromFn(() => {
-  var x = 123
-  var y = x
-  var z = w(y)
+const exampleCode = (
+`const x = 123;
+const y = 256;
+const zx = w(x);
+const zy = w(y);
 
-  function w (abc) {
-    return abc
-  }
-})
+function w (abc) {
+  return abc;
+}
+`
+)
+
+/*
+TODO:
+  for all observed function calls, we need to create a call context
+  that tracks the argument bindings.
+  we should likely remove all ast nodes from the graph
+  and only reference them in our implementation.
+  the goal is to be able to search for all values that are used to derive another value,
+  and to backwards trace where a value ends up.
+*/
+
 
 const codeMirror = CodeMirror(document.body, {
   value: exampleCode,
@@ -73,6 +86,23 @@ function generateGraphData ({ codeString }) {
     //     name: `ast`,
     //   })
     // },
+    BinaryExpression: (path) => {
+      nodeSet.add(path.node)
+      nodeSet.add(path.node.left)
+      nodeSet.add(path.node.right)
+      refLinks.push({
+        source: idForNode(path.node),
+        target: idForNode(path.node.left),
+        name: `lhs`,
+        color: 'blue',
+      })
+      refLinks.push({
+        source: idForNode(path.node),
+        target: idForNode(path.node.right),
+        name: `rhs`,
+        color: 'blue',
+      })
+    },
     ReferencedIdentifier: (path) => {
       const refTarget = path.scope.getBinding(path.node.name)
       nodeSet.add(path.node)
@@ -94,6 +124,21 @@ function generateGraphData ({ codeString }) {
       } else {
         calleeRefTargetNode = fnCallee
       }
+
+      const argumentBindings = path.node.arguments.map((argValue, index) => {
+        const argDeclaration = calleeRefTargetNode.params[index]
+        return {
+          argDeclaration,
+          argValue,
+        }
+      })
+
+      const callContext = {
+        callSite: path.node,
+        functionNode: calleeRefTargetNode,
+        argumentBindings,
+      }
+
       nodeSet.add(path.node)
       nodeSet.add(calleeRefTargetNode)
       refLinks.push({
@@ -157,17 +202,6 @@ function initGraph({ container }) {
     .linkDirectionalArrowLength(link => link.name === 'ast' ? 0 : 6)
   return myGraph
 }
-
-function stringFromFn(fn) {
-  return `(${fn})()`
-}
-
-function parseFn (fn, opts) {
-  const fnString = stringFromFn(fn)
-  const ast = parse(fnString, opts)
-  return ast
-}
-
 
 function idForNode (node) {
   return `${node.type}-${node.start}:${node.end}`
