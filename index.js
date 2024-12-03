@@ -17,7 +17,6 @@ const exampleCode = stringFromFn(() => {
 const codeMirror = CodeMirror(document.body, {
   value: exampleCode,
   mode: 'javascript',
-  // readOnly: true,
 })
 const codeMirrorDoc = codeMirror.getDoc()
 
